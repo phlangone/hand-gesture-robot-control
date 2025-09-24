@@ -16,10 +16,10 @@ hand-gesture-robot-control/
 ├── models/              # Gesture recognition models and configs
 ├── robot/               # Robot control modules and interfaces
 ├── src/                 # Main application and gesture detection code
-│   ├── main.py          # Entry point for the application
-│   └── ...              # Other source files
+│   └── ...              # Source files
 ├── utils/               # Utilities functions
 ├── tests/               # Unit and integration tests
+├── main.py              # Application entry point
 ├── requirements.txt     # Python dependencies
 ├── README.md            # Project documentation
 ```
@@ -41,32 +41,20 @@ hand-gesture-robot-control/
 1. Connect your camera and robot hardware.
 2. Run the main application:
     ```bash
-    python src/main.py
+    python main.py
     ```
 3. Perform supported hand gestures in front of the camera to control the robot.
 
 ## Supported Gestures
 
-- Open palm: Start/stop robot
-- Fist: Move forward
-- Two fingers: Turn left/right
-- Custom gestures can be added in `models/`
+- Open palm: Enable robot operation
+- Close palm: Disable robot 
+- Move finger CW: Select program 1
+- Move finger CCW: Select program 2
 
 ## Contributing
 
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository.
-2. Create a new branch for your feature or bugfix.
-3. Submit a pull request with a clear description of your changes.
-
-## License
-
-This project is licensed under the MIT License.
-
-## Contact
-
-For questions or support, open an issue or contact [your.email@example.com](mailto:your.email@example.com).
+Contributions are welcome!
 
 ## Credits
 
