@@ -13,7 +13,7 @@ class HandGestureApp:
         self.args = args
         
         # Initialize components
-        self.robot_controller = RobotController(host='localhost')
+        self.robot_controller = RobotController(host='192.168.0.160')
         self.gesture_detector = GestureDetector(args)
         self.gui = GUIInterface()
         self.fsm_controller = FSMController()

@@ -16,7 +16,7 @@ def test_rtde_connection():
         return False
     
     # Testar conexão de rede com o robô
-    robot_ip = 'localhost'
+    robot_ip = '192.168.0.160'
     port = 30004
     
     print(f"Testing connection to {robot_ip}:{port}")

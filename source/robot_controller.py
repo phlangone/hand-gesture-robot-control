@@ -5,6 +5,8 @@ from typing import Optional, Tuple
 try:
     import rtde_receive
     import rtde_control
+    import rtde_io
+    import dashboard_client
     RTDE_AVAILABLE = True
 except ImportError:
     RTDE_AVAILABLE = False
@@ -15,8 +17,10 @@ class RobotController:
         self.host = host
         self.port = port
         self.frequency = frequency
-        self.rtde_c = None  # Control interface
-        self.rtde_r = None  # Receive interface
+        self.rtde_io = None             # IO interface
+        self.rtde_c = None              # Control interface
+        self.rtde_r = None              # Receive interface
+        self.dashboard_client = None    # Dashboard interface
         self.connected = False
         self.simulation_mode = not RTDE_AVAILABLE
         
@@ -31,17 +35,26 @@ class RobotController:
             
         try:
             # Create RTDE interfaces
+            self.rtde_io = rtde_io.RTDEIOInterface(self.host)
             self.rtde_r = rtde_receive.RTDEReceiveInterface(self.host, frequency=self.frequency)
             self.rtde_c = rtde_control.RTDEControlInterface(self.host, frequency=self.frequency)
-            
+            self.rtde_dash = dashboard_client.DashboardClient(hostname=self.host, verbose=True)
+
             # Test connection
-            actual_frequency = self.rtde_r.getTargetFrequency()
-            print(f"RTDE Connected to {self.host}. Actual frequency: {actual_frequency} Hz")
-            
+            print(f"RTDE Connected to {self.host}")
+
+            # Connect dashboard interface
+            self.rtde_dash.connect()
+
+            # Send start program command
+            self.rtde_dash.loadURP("Futurecom/main.urp")
+            self.rtde_dash.play()
+
             # Set initial digital outputs to False
             self._set_all_outputs_false()
             
             self.connected = True
+
             return True
             
         except Exception as e:
@@ -56,25 +69,25 @@ class RobotController:
             try:
                 # Standard digital outputs (0-7)
                 for i in range(8):
-                    self.rtde_c.setStandardDigitalOut(i, False)
+                    self.rtde_io.setStandardDigitalOut(i, False)
                 # Configurable digital outputs (8-15)  
                 for i in range(8, 16):
-                    self.rtde_c.setConfigurableDigitalOut(i, False)
+                    self.rtde_io.setConfigurableDigitalOut(i, False)
                 # Tool digital outputs (0-1)
                 for i in range(2):
-                    self.rtde_c.setToolDigitalOut(i, False)
+                    self.rtde_io.setToolDigitalOut(i, False)
             except Exception as e:
                 print(f"Error setting initial outputs: {e}")
 
-    def pulse_execute(self, pulse_time: float = 0.20) -> bool:
+    def pulse_execute(self, pulse_time: float = 0.50) -> bool:
         """Pulse digital output to execute program"""
         try:
             if self.connected and not self.simulation_mode:
                 # Set DO6 to True
-                self.rtde_c.setStandardDigitalOut(6, True)
+                self.rtde_io.setStandardDigitalOut(6, True)
                 time.sleep(pulse_time)
                 # Set DO6 to False
-                self.rtde_c.setStandardDigitalOut(6, False)
+                self.rtde_io.setStandardDigitalOut(6, False)
                 return True
             else:
                 print(f"SIMULATION: Pulso DO[6] por {pulse_time}s")
@@ -88,7 +101,7 @@ class RobotController:
         """Set program selection output (DO5)"""
         try:
             if self.connected and not self.simulation_mode:
-                self.rtde_c.setStandardDigitalOut(5, is_prog2)
+                self.rtde_io.setStandardDigitalOut(5, is_prog2)
                 return True
             else:
                 print(f"SIMULATION: Set DO5 to {is_prog2}")
@@ -102,7 +115,7 @@ class RobotController:
         """Set enabled state output (DO4)"""
         try:
             if self.connected and not self.simulation_mode:
-                self.rtde_c.setStandardDigitalOut(4, enabled)
+                self.rtde_io.setStandardDigitalOut(4, enabled)
                 return True
             else:
                 print(f"SIMULATION: Set DO4 to {enabled}")
@@ -116,7 +129,7 @@ class RobotController:
         """Check if program has finished (DI7)"""
         try:
             if self.connected and not self.simulation_mode:
-                return self.rtde_r.getStandardDigitalIn(7)
+                return self.rtde_r.getDigitalOutState(7)
             else:
                 # In simulation, return finished after a delay
                 return True
@@ -140,7 +153,7 @@ class RobotController:
             return {
                 'simulation': False,
                 'connected': True,
-                'safety_status': self.rtde_r.getSafetyStatus(),
+                'safety_status': self.rtde_r.getSafetyStatusBits(),
                 'robot_mode': self.rtde_r.getRobotMode(),
                 'program_running': self.rtde_r.isProgramRunning(),
                 'actual_q': self.rtde_r.getActualQ(),  # Joint positions
@@ -182,6 +195,9 @@ class RobotController:
         """Cleanup robot connection"""
         try:
             if self.connected and not self.simulation_mode:
+                # Send stop program command
+                self.rtde_dash.stop()
+
                 # Set all outputs to False before disconnecting
                 self._set_all_outputs_false()
                 
@@ -193,6 +209,10 @@ class RobotController:
                     self.rtde_c.disconnect()
                 if self.rtde_r:
                     self.rtde_r.disconnect()
+                if self.rtde_io:
+                    self.rtde_io.disconnect()
+                if self.rtde_dash:
+                    self.rtde_dash.disconnect()
                     
                 print("RTDE connection closed properly")
                 
