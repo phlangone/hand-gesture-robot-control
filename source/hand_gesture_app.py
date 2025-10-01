@@ -95,7 +95,7 @@ class HandGestureApp:
         else:
             self.point_history.append([0, 0])
         
-        # --- ADD THESE TWO LINES TO DRAW THE FINGER MOVEMENT AND FPS ---
+        # Draw finger movement and video FPS
         debug_image = self.gesture_detector.draw_point_history(debug_image, self.point_history)
         debug_image = self.gesture_detector.draw_info(debug_image, int(fps))
         
